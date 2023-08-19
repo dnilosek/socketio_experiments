@@ -1,7 +1,7 @@
-import io from "socket.io-client";
+import io, { Socket } from "socket.io-client";
 import { useState, useEffect } from "react";
 
-let socket;
+let socket: Socket | undefined;
 
 type Message = {
   author: string;
@@ -9,9 +9,9 @@ type Message = {
 };
 
 export default function Home() {
-  const [username, setUsername] = useState("");
-  const [chosenUsername, setChosenUsername] = useState("");
-  const [message, setMessage] = useState("");
+  const [username, setUsername] = useState<string>("");
+  const [chosenUsername, setChosenUsername] = useState<string>("");
+  const [message, setMessage] = useState<string>("");
   const [messages, setMessages] = useState<Array<Message>>([]);
 
   useEffect(() => {
@@ -19,12 +19,10 @@ export default function Home() {
   }, []);
 
   const socketInitializer = async () => {
-    // We just call it because we don't need anything else out of it
     await fetch("/api/socket");
-
     socket = io();
 
-    socket.on("newIncomingMessage", (msg) => {
+    socket.on("newIncomingMessage", (msg: Message) => {
       setMessages((currentMsg) => [
         ...currentMsg,
         { author: msg.author, message: msg.message },
@@ -34,7 +32,7 @@ export default function Home() {
   };
 
   const sendMessage = async () => {
-    socket.emit("createdMessage", { author: chosenUsername, message });
+    socket?.emit("createdMessage", { author: chosenUsername, message });
     setMessages((currentMsg) => [
       ...currentMsg,
       { author: chosenUsername, message },
@@ -42,8 +40,7 @@ export default function Home() {
     setMessage("");
   };
 
-  const handleKeypress = (e) => {
-    //it triggers by pressing the enter key
+  const handleKeypress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.keyCode === 13) {
       if (message) {
         sendMessage();

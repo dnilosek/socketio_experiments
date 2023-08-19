@@ -1,18 +1,33 @@
-import { Server } from "socket.io";
+import { Server, Socket as IOSocket } from "socket.io";
+import { Server as NetServer } from "http";
+import { NextApiRequest, NextApiResponse } from "next";
 import messageHandler from "../../utils/messageHandler";
 
-export default function SocketHandler(req, res) {
+interface ExtendedNetServer extends NetServer {
+  io?: Server;
+}
+
+type SocketHandlerResponse = {
+  socket: {
+    server: ExtendedNetServer;
+  };
+} & NextApiResponse;
+
+export default function SocketHandler(req: NextApiRequest, res: NextApiResponse) {
+  
+  const response = res as SocketHandlerResponse;
+
   // It means that socket server was already initialised
-  if (res.socket.server.io) {
+  if (response.socket.server.io) {
     console.log("Already set up");
-    res.end();
+    response.end();
     return;
   }
 
-  const io = new Server(res.socket.server);
-  res.socket.server.io = io;
+  const io = new Server(response.socket.server);
+  response.socket.server.io = io;
 
-  const onConnection = (socket) => {
+  const onConnection = (socket: IOSocket) => {
     messageHandler(io, socket);
   };
 
@@ -20,5 +35,5 @@ export default function SocketHandler(req, res) {
   io.on("connection", onConnection);
 
   console.log("Setting up socket");
-  res.end();
+  response.end();
 }
