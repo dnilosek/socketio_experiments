@@ -1,7 +1,5 @@
-import io, { Socket } from "socket.io-client";
 import { useState, useEffect } from "react";
-
-let socket: Socket | undefined;
+import Pusher from 'pusher-js';
 
 type Message = {
   author: string;
@@ -15,28 +13,39 @@ export default function Home() {
   const [messages, setMessages] = useState<Array<Message>>([]);
 
   useEffect(() => {
-    socketInitializer();
-  }, []);
+    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_APP_KEY!, {
+      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
+      userAuthentication: {
+        endpoint:  '/pusher/user-auth',
+        transport: 'ajax'
+      }
+    });
 
-  const socketInitializer = async () => {
-    await fetch("/api/socket");
-    socket = io();
+    const channel = pusher.subscribe('socketio_experimeents');
 
-    socket.on("newIncomingMessage", (msg: Message) => {
+    channel.bind('newIncomingMessage', (msg: Message) => {
       setMessages((currentMsg) => [
         ...currentMsg,
         { author: msg.author, message: msg.message },
       ]);
-      console.log(messages);
     });
-  };
+
+    // Cleanup the subscription and unbind the event
+    return () => {
+      channel.unbind('newIncomingMessage');
+      pusher.unsubscribe('socketio_experimeents');
+    };
+  }, []);
 
   const sendMessage = async () => {
-    socket?.emit("createdMessage", { author: chosenUsername, message });
-    setMessages((currentMsg) => [
-      ...currentMsg,
-      { author: chosenUsername, message },
-    ]);
+    await fetch("/api/sendMessage", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ author: chosenUsername, message }),
+    });
+
     setMessage("");
   };
 
@@ -47,6 +56,7 @@ export default function Home() {
       }
     }
   };
+
 
   return (
     <div className="flex items-center p-4 mx-auto min-h-screen justify-center">
