@@ -20,7 +20,7 @@ export default async function sendMessage(req: NextApiRequest, res: NextApiRespo
     const { author, message } = req.body;
 
     // Trigger a new message event on your Pusher channel
-    pusher.trigger('socketio_experimeents', 'newIncomingMessage', {
+    await pusher.trigger('socketio_experimeents', 'newIncomingMessage', {
       author,
       message
     });
